@@ -10,12 +10,6 @@
 			},
 			{
 				"indexed": false,
-				"internalType": "uint256",
-				"name": "id",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
 				"internalType": "string",
 				"name": "name",
 				"type": "string"
@@ -65,12 +59,6 @@
 		"inputs": [
 			{
 				"indexed": false,
-				"internalType": "uint256",
-				"name": "id",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
 				"internalType": "bool",
 				"name": "funded",
 				"type": "bool"
@@ -88,12 +76,6 @@
 	{
 		"anonymous": false,
 		"inputs": [
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "id",
-				"type": "uint256"
-			},
 			{
 				"indexed": false,
 				"internalType": "uint256",
@@ -190,6 +172,26 @@
 		"name": "getContributions",
 		"outputs": [
 			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			},
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			},
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			},
+			{
 				"internalType": "uint256[]",
 				"name": "",
 				"type": "uint256[]"
@@ -229,11 +231,6 @@
 				"type": "address"
 			},
 			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			},
-			{
 				"internalType": "string",
 				"name": "",
 				"type": "string"
@@ -277,6 +274,11 @@
 				"internalType": "uint256",
 				"name": "",
 				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
 			},
 			{
 				"internalType": "bool",

@@ -25,7 +25,6 @@ contract CrowdFund {
   // Add a deadline field
   struct Project {
     address payable owner;
-    uint id;
     string name;
     string image;
     string description;
@@ -42,7 +41,7 @@ contract CrowdFund {
     mapping(address => contributionData) contributions;
   }
   uint internal projectCount = 0;
-  mapping(uint => Project) internal projects;
+  mapping(uint => Project) internal projects;  
   address internal cUsdTokenAddress = 0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1;
   
   modifier onlyProjectOwner(uint _index) {
@@ -52,7 +51,6 @@ contract CrowdFund {
     
   event AddProjectEvent(
     address indexed owner,
-    uint id,
     string name,
     string image,
     string description,
@@ -63,25 +61,40 @@ contract CrowdFund {
   );
   
   event FundProjectEvent(
-    uint id,
     uint totalFunded,
     uint fundersCount
   );
   
   event CloseFundEvent(
-    uint id,
     bool funded,
     bool fundingOpen
   );
 
   // Retrieve a user's contributions
-  function getContributions(uint _index) external view returns (uint[] memory, uint, uint, bool) {
+  function getContributions(uint _index) external view returns (
+    address,
+    string memory,
+    bool,
+    bool,
+    uint[] memory,
+    uint,
+    uint,
+    bool    
+  ) {
     Project storage project = projects[_index];
     
+    // Error Handling
     require(project.exists, 'The project does not exist!');
-    require(project.contributions[msg.sender].contributer == msg.sender);
 
-    return(
+    if(project.contributions[msg.sender].contributer != msg.sender){
+      revert("You can only view your contributions");
+    }
+
+    return (
+      project.owner,
+      project.name,
+      project.funded,
+      project.fundingOpen,
       project.contributions[msg.sender].contribs,
       project.contributions[msg.sender].totalContrib,
       project.contributions[msg.sender].timestamp,
@@ -95,7 +108,6 @@ contract CrowdFund {
   
   function getProject (uint _index) public view returns (
     address payable,
-    uint,
     string memory,
     string memory,
     string memory,
@@ -105,12 +117,12 @@ contract CrowdFund {
     uint,
     uint,
     uint,
+    bool,
     bool
   ) {
     Project storage project = projects[_index];
     return (
       project.owner,
-      project.id,
       project.name,
       project.image,
       project.description,
@@ -120,6 +132,7 @@ contract CrowdFund {
       project.totalFunded,
       project.fundersCount,
       project.timestamp,
+      project.funded,
       project.fundingOpen
     );
   }
@@ -132,6 +145,7 @@ contract CrowdFund {
     uint _target,
     uint _minContrib
   ) public {
+    // Error Handling
     require(_target > 0, 'Project target must be greater than 0 cUSD');
     require(_minContrib < _target, 'The minimum contribution must be less than the Target!');
     require(bytes(_name).length != 0 && bytes(_description).length != 0 && bytes(_website).length != 0, 'Project Title, description and website must be present!');
@@ -142,7 +156,6 @@ contract CrowdFund {
     Project storage newProject = projects[projectCount];
     
     newProject.owner = payable(msg.sender);
-    newProject.id = projectCount;
     newProject.name = _name;
     newProject.image = _image;
     newProject.description = _description;
@@ -160,7 +173,6 @@ contract CrowdFund {
       
     emit AddProjectEvent(
       newProject.owner,
-      newProject.id,
       newProject.name,
       newProject.image,
       newProject.description,
@@ -174,24 +186,30 @@ contract CrowdFund {
   function fundProject (uint _index, uint _amount) external payable {
     Project storage project = projects[_index];
     
+    // Error Handling
     require(project.exists, 'The project does not exist!');
-    require(project.minContrib > _amount, 'Provide funding greater than the mininimum contribution set');
     require(project.funded == false, 'The project has been fully funded');
     require(project.fundingOpen, 'The Project Owner has closed the Project Funding');
-    require((project.totalFunded + _amount) < project.target, 'The amount contributed will lead to Overfunding');
-    require(msg.sender == project.owner, 'You cannot fund your own project');
     
-    // Funds are sent to the contract to act as an escrow account
+    if(_amount <  project.minContrib) {
+      revert("Provide funding greater than the mininimum contribution set");
+    }
+    if((project.totalFunded + _amount) > project.target) {
+      revert("The amount contributed will lead to Overfunding");
+    }
+    
+    // Funds are sent to the smart contract to act as an escrow account
     require(
-      IERC20Token(cUsdTokenAddress).transfer(
+      IERC20Token(cUsdTokenAddress).transferFrom(
         msg.sender,
+        address(this),
         _amount
       ),
       "Funding failed."
     );
       
     // Add the funders count and the total amount funded
-    if(project.contributions[msg.sender].contribs.length == 0){
+    if(project.contributions[msg.sender].contribs.length == 0) {
       project.fundersCount++;
     }
     project.totalFunded += _amount;
@@ -206,14 +224,7 @@ contract CrowdFund {
     if(project.totalFunded == project.target) {
       // Close the funding
       project.funded = true;
-      project.fundingOpen = false;
-                
-      // Send the funds from escrow to the project owner if contract has enough funds
-      require(project.totalFunded < address(this).balance, 'Try again later or contact support!');
-      // This pattern avoids re-entrancy
-      uint funds = project.totalFunded;
-      delete project.totalFunded;
-      project.owner.transfer(funds);  
+      project.fundingOpen = false;  
     }
       
     // Edge Case - Check if the mininimum contribution amount is more than the target amount
@@ -222,33 +233,58 @@ contract CrowdFund {
     }
     
     emit FundProjectEvent(
-      project.id,
       project.totalFunded,
       project.fundersCount
     );
   }
-  
+
   // Function to close project funding
   function closeFund (uint _index) public onlyProjectOwner(_index) {
     Project storage project = projects[_index];
     
     require(project.exists, 'The project does not exist!');
     require(project.fundingOpen, 'Project funding is already closed!');
+    
     // 12 minutes is for testing purposes, ideally this could be 30 days or otherwise.
-    require(block.timestamp > (project.timestamp + 12 minutes), 'The Fund cannot be closed before 12 minutes elapse');
-            
-    // If target has not been reached allow contributers to get a refund of their contributions
-    if(project.funded == false) {
-      project.contributions[msg.sender].withdrawable = true;
+    if(block.timestamp < (project.timestamp + 12 minutes)) {
+      revert("The Fund cannot be closed before 12 minutes elapse");
     }
     
     project.fundingOpen = false;
 
     emit CloseFundEvent(
-      project.id,
       project.funded,
       project.fundingOpen
     );
+  }
+
+  function withdrawFunds (uint _index) public onlyProjectOwner(_index) {
+    Project storage project = projects[_index];
+    
+    require(project.exists, 'The project does not exist!');
+    require(project.funded, 'The project has not been fully funded');
+    require(project.fundingOpen == false, 'The project is still accepting funding');
+
+    uint funds = project.totalFunded;
+    delete project.totalFunded;
+    project.owner.transfer(funds);
+  }
+
+  // Allow individual users to request their own refunds if the fund was closed before the target was reached
+  function requestRefund(uint _index) external returns (bool) {
+    Project storage project = projects[_index];
+    
+    require(project.exists, 'The project does not exist!');
+    require(project.fundingOpen == false, 'The project is still accepting funding!');
+    require(project.contributions[msg.sender].withdrawable == false);
+    require(project.contributions[msg.sender].contributer == msg.sender);
+
+    if(project.funded == false) {
+      project.contributions[msg.sender].withdrawable = true;
+      return true;
+    }
+
+    return false;
   }
 
   // Allow contributers to be be refunded their contributions if the project is closed before funding target is reached
