@@ -5,7 +5,7 @@ import crowdfundAbi from "../contract/abis/crowdfund.abi.json";
 import erc20Abi from "../contract/abis/erc20.abi.json";
 
 const ERC20_DECIMALS = 18;
-const CFContractAddress = "0x3E253c42fC2177aA34D2D6ECEB4DA1ab1DD0BD00";
+const CFContractAddress = "0xF7A1502Aa2C3E699Dfc445fFf516Ff6eA08742f7";
 const cUSDContractAddress = "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1";
 
 let kit;
@@ -497,7 +497,7 @@ document.querySelector("#subContainer").addEventListener("click", async (e) => {
     for(let i=0; i < projectContributions.contribs.length; i++){
       const newListItem = document.createElement("li");
       newListItem.innerHTML = `<b>${new BigNumber(projectContributions.contribs[i]).shiftedBy(-ERC20_DECIMALS).toFixed(2)} cUSD</b> - 
-        ${new Date(projectContributions.timestamps * 1000).toUTCString()}`;
+        ${new Date(projectContributions.timestamps[i] * 1000).toUTCString()}`;
       contribsList.appendChild(newListItem)
     }
     document.getElementById("contribDetails").appendChild(contribsList);
