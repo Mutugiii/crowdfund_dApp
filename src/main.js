@@ -227,7 +227,7 @@ function projectDetailsTemplate(_project) {
       <br/>`
       : ``
       }
-      ${_project.owner == kit.defaultAccount && _project.funded && !_project.fundingOpen && projectContributions.contribs.length > 0 ? 
+      ${_project.owner == kit.defaultAccount && _project.funded && !_project.fundingOpen ? 
         `<a class="btn btn-lg btn-outline-primary withdrawFunds fs-6 p-3" id=${_project.index}>Withdraw Funds</a><br/>
         <br/>` : ``
       }
