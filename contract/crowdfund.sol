@@ -17,8 +17,8 @@ contract CrowdFund {
   struct contributionData {
     address contributer;
     uint[] contribs;
+    uint[] timestamps;
     uint totalContrib;
-    uint timestamp;
     bool withdrawable;
   }
 
@@ -69,38 +69,6 @@ contract CrowdFund {
     bool funded,
     bool fundingOpen
   );
-
-  // Retrieve a user's contributions
-  function getContributions(uint _index) external view returns (
-    address,
-    string memory,
-    bool,
-    bool,
-    uint[] memory,
-    uint,
-    uint,
-    bool    
-  ) {
-    Project storage project = projects[_index];
-    
-    // Error Handling
-    require(project.exists, 'The project does not exist!');
-
-    if(project.contributions[msg.sender].contributer != msg.sender){
-      revert("You can only view your contributions");
-    }
-
-    return (
-      project.owner,
-      project.name,
-      project.funded,
-      project.fundingOpen,
-      project.contributions[msg.sender].contribs,
-      project.contributions[msg.sender].totalContrib,
-      project.contributions[msg.sender].timestamp,
-      project.contributions[msg.sender].withdrawable
-    );
-  }
   
   function getProjectCount () public view returns (uint) {
     return projectCount;
@@ -183,7 +151,7 @@ contract CrowdFund {
     );
   }
   
-  function fundProject (uint _index, uint _amount) external payable {
+  function fundProject (uint _index, uint _amount) public payable {
     Project storage project = projects[_index];
     
     // Error Handling
@@ -216,8 +184,8 @@ contract CrowdFund {
 
     // Add the contribution data related to the sender's address
     project.contributions[msg.sender].contribs.push(_amount);
+    project.contributions[msg.sender].timestamps.push(block.timestamp);
     project.contributions[msg.sender].totalContrib += _amount;
-    project.contributions[msg.sender].timestamp = block.timestamp;
     project.contributions[msg.sender].withdrawable = false;
       
     // Check if Target is reached 
@@ -258,7 +226,8 @@ contract CrowdFund {
     );
   }
 
-  function withdrawFunds (uint _index) public onlyProjectOwner(_index) {
+  // Project owner to withdraw funds
+  function withdrawFunds (uint _index) public payable onlyProjectOwner(_index) {
     Project storage project = projects[_index];
     
     require(project.exists, 'The project does not exist!');
@@ -267,24 +236,46 @@ contract CrowdFund {
 
     uint funds = project.totalFunded;
     delete project.totalFunded;
-    project.owner.transfer(funds);
+    
+    IERC20Token(cUsdTokenAddress).transfer(
+      payable(msg.sender),
+      funds
+    );
+  }
+
+  // Retrieve a user's contributions
+  function getContributions(uint _index) external view returns (
+    uint[] memory,
+    uint[] memory,
+    uint,
+    bool    
+  ) {
+    Project storage project = projects[_index];
+    
+    // Error Handling
+    require(project.exists, 'The project does not exist!');
+
+    return (
+      project.contributions[msg.sender].contribs,
+      project.contributions[msg.sender].timestamps,
+      project.contributions[msg.sender].totalContrib,
+      project.contributions[msg.sender].withdrawable
+    );
   }
 
   // Allow individual users to request their own refunds if the fund was closed before the target was reached
-  function requestRefund(uint _index) external returns (bool) {
+  function requestRefund(uint _index) external returns (uint) {
     Project storage project = projects[_index];
     
     require(project.exists, 'The project does not exist!');
     require(project.fundingOpen == false, 'The project is still accepting funding!');
-    require(project.contributions[msg.sender].withdrawable == false);
-    require(project.contributions[msg.sender].contributer == msg.sender);
 
     if(project.funded == false) {
       project.contributions[msg.sender].withdrawable = true;
-      return true;
+      return project.contributions[msg.sender].totalContrib;
     }
 
-    return false;
+    return 0;
   }
 
   // Allow contributers to be be refunded their contributions if the project is closed before funding target is reached
@@ -292,14 +283,18 @@ contract CrowdFund {
     Project storage project = projects[_index];
     
     require(project.exists, 'The project does not exist!');
-    require(project.contributions[msg.sender].withdrawable == true);
-    require(project.contributions[msg.sender].contributer == msg.sender);
+    require(project.fundingOpen == false, 'The project is still accepting funding!');
     
-    // This pattern avoids potential re-entrancy
     uint totalContributions = project.contributions[msg.sender].totalContrib;
+
+    project.contributions[msg.sender].withdrawable = false;
     delete project.contributions[msg.sender].totalContrib;
     delete project.contributions[msg.sender].contribs;
-    payable(msg.sender).transfer(totalContributions);
+
+    IERC20Token(cUsdTokenAddress).transfer(
+      payable(msg.sender),
+      totalContributions
+    ); 
   }
   
   function increaseProjectCount() internal {
