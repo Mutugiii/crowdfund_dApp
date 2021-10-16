@@ -60,6 +60,17 @@ contract CrowdFund {
     uint timestamp
   );
   
+  event EditProjectEvent(
+    address indexed owner,
+    string name,
+    string image,
+    string description,
+    string website,
+    uint target,
+    uint minContrib,
+    uint timestamp
+  );
+  
   event FundProjectEvent(
     uint totalFunded,
     uint fundersCount
@@ -114,10 +125,14 @@ contract CrowdFund {
     uint _minContrib
   ) public {
     // Error Handling
-    require(_target > 0, 'Project target must be greater than 0 cUSD');
-    require(_minContrib < _target, 'The minimum contribution must be less than the Target!');
-    require(bytes(_name).length != 0 && bytes(_description).length != 0 && bytes(_website).length != 0, 'Project Title, description and website must be present!');
-    
+  validateData(
+     _image,
+     _description,
+     _website,
+     _target,
+     _minContrib);
+
+  
     uint _totalFunded = 0;
     uint _fundersCount = 0;
     
@@ -150,6 +165,58 @@ contract CrowdFund {
       newProject.timestamp
     );
   }
+
+
+// owner of the project can edit it
+  function editProject (
+    uint _index,
+    string memory _name,
+    string memory _image,
+    string memory _description,
+    string memory _website,
+    uint _target,
+    uint _minContrib
+  ) public  onlyProjectOwner(_index)  {
+
+      
+    Project storage project = projects[_index];
+    
+    // Error Handling
+      validateData(
+     _image,
+     _description,
+     _website,
+     _target,
+     _minContrib);
+
+
+   
+    uint _totalFunded = project.totalFunded;
+    uint _fundersCount = project.fundersCount;
+    
+    require(_target >_totalFunded, "Cannt update target to value less than already raised" );
+
+    project.name = _name;
+    project.image = _image;
+    project.description = _description;
+    project.website = _website;
+    project.target = _target;
+    project.minContrib = _minContrib;
+    project.totalFunded = _totalFunded;
+    project.fundersCount = _fundersCount;
+
+    emit EditProjectEvent(
+      project.owner,
+      project.name,
+      project.image,
+      project.description,
+      project.website,
+      project.target,
+      project.minContrib,
+      project.timestamp
+    );
+  }
+  
   
   function fundProject (uint _index, uint _amount) public payable {
     Project storage project = projects[_index];
@@ -299,5 +366,16 @@ contract CrowdFund {
   
   function increaseProjectCount() internal {
     projectCount++;
+  }
+  function validateData(
+    string memory _name,
+    string memory _description,
+    string memory _website,
+    uint _target,
+    uint _minContrib  ) internal pure {
+     require(_target > 0, 'Project target must be greater than 0 cUSD');
+    require(_minContrib < _target, 'The minimum contribution must be less than the Target!');
+    require(bytes(_name).length != 0 && bytes(_description).length != 0 && bytes(_website).length != 0, 'Project Title, description and website must be present!');
+    
   }
 }

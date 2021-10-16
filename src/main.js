@@ -6,6 +6,8 @@ import erc20Abi from "../contract/abis/erc20.abi.json";
 
 const ERC20_DECIMALS = 18;
 const CFContractAddress = "0xF7A1502Aa2C3E699Dfc445fFf516Ff6eA08742f7";
+// new deployed adrress
+// const CFContractAddress = "0x0a17Acbbfd9ACe7C9e17eFf281b191B80617e739";
 const cUSDContractAddress = "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1";
 
 let kit;
