@@ -355,7 +355,7 @@ document
     ];
     notification(`⌛ Adding "${params[0]}"...`);
     try {
-      const result = await contract.methods
+      await contract.methods
         .createProject(...params)
         .send({ from: kit.defaultAccount })
       notification(`🎉 You successfully added "${params[0]}".`);
@@ -409,7 +409,7 @@ document.querySelector("#subContainer").addEventListener("click", async (e) => {
     notification(`⌛ Awaiting payment for "${projects[index].name}"...`);
     
     try {
-      const result = await contract.methods
+       await contract.methods
         .fundProject(index, price)
         .send({ from: kit.defaultAccount });
       notification(`🎉 You successfully funded "${projects[index].name}".`);
@@ -426,7 +426,7 @@ document.querySelector("#subContainer").addEventListener("click", async (e) => {
     notification(`⌛ Closing "${projects[index].name}"...`);
 
     try {
-      const result = await contract.methods
+       await contract.methods
         .closeFund(index)
         .send({ from: kit.defaultAccount })
       notification(`🎉 You successfully closed "${projects[index].name}".`);
@@ -442,7 +442,7 @@ document.querySelector("#subContainer").addEventListener("click", async (e) => {
     notification(`⌛ Withrawing Funds from "${projects[index].name}"...`);
 
     try {
-      const result = await contract.methods
+      await contract.methods
         .withdrawFunds(index)
         .send({ from: kit.defaultAccount })
       notification(`🎉 You successfully withdrew funds from "${projects[index].name}".`);
@@ -458,7 +458,7 @@ document.querySelector("#subContainer").addEventListener("click", async (e) => {
     notification(`⌛ Requesting refund from "${projects[index].name}"...`);
 
     try {
-      const result = await contract.methods
+      await contract.methods
         .requestRefund(index)
         .send({ from: kit.defaultAccount })
       notification(`🎉 Your request for a refund from "${projects[index].name}" has been processed.`);
@@ -474,7 +474,7 @@ document.querySelector("#subContainer").addEventListener("click", async (e) => {
     notification(`⌛ Processing refund from "${projects[index].name}"...`);
 
     try {
-      const result = await contract.methods
+      await contract.methods
         .getRefund(index)
         .send({ from: kit.defaultAccount })
       notification(`🎉 You were successfully refunded by "${projects[index].name}".`);
